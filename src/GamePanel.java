@@ -12,7 +12,7 @@ public class GamePanel extends JPanel implements MouseListener {
     private final GameGrid gameGrid;
     private GameState gameState;
     private String gameStateStr;
-    private SimpleAI aiBehaviour;
+    private AI aiBehaviour;
 
     public GamePanel() {
         setPreferredSize(new Dimension(PANEL_WIDTH, PANEL_HEIGHT));
@@ -37,8 +37,8 @@ public class GamePanel extends JPanel implements MouseListener {
 
 
     // esc - close app
-    // r - restart
-    // a - choose AI
+    // R - restart
+    // A - choose AI
     public void handleInput(int keyCode) {
         if(keyCode == KeyEvent.VK_ESCAPE) {
             System.exit(0);
@@ -149,7 +149,7 @@ public class GamePanel extends JPanel implements MouseListener {
                 null, options, options[0]);
         switch (difficultyChoice) {
             case 0 -> aiBehaviour = null;
-            case 1 -> aiBehaviour = new SimpleAI(gameGrid, 2);
+            case 1 -> aiBehaviour = new AI(gameGrid, 2);
         }
     }
 

@@ -24,12 +24,21 @@ public class Main {
 //            int[] wartosci = {3, 5, 7, 2, 8, 4, 6, 9, 1, 5, 7, 8, 3, 4, 6, 2, 1, 5, 8, 9};
 //            int pojemnosc = 50;
 //            System.out.println(knapsack(wagi, wartosci, pojemnosc)); // output: 11
-            int[] b = {1,1,1};
-            a(b);
-            System.out.println(b[0]);
+//            int[] b = {1,1,1};
+//            a(b);
+//            System.out.println(b[0]);
+//            String a = "a";
+//            a(a);
+//            System.out.println(a);
+//            int i = 3;
+//            for(int i = 0; i<4; i++) {
+//                System.out.println(i);
+//            }
 
         }
-
+        static void a(String b) {
+            b+="a";
+        }
         static void a(int[] b) {
             b[0] = 4;
         }
