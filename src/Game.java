@@ -8,7 +8,7 @@ public class Game implements KeyListener {
         Game game = new Game();
     }
 
-    private GamePanel gamePanel;
+    private final GamePanel gamePanel;
 
     public Game() {
         JFrame frame = new JFrame("Othello");

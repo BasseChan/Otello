@@ -12,11 +12,14 @@ class Elem {
 }
 
 public class AI {
-    private static final int maxIteration = 15;
-    private static final int optionsToCut = 6;
+    private int number = 0;
+    private static final int maxIteration = 10;
+    private static final int optionsToCut = 8;
     private final GameGrid gameGrid;
     private final int player;
     private final int otherPlayer;
+    private Heuristic heuristic;
+    private int maxRoundNumber;
 
     public AI(GameGrid gameGrid, int player) {
         this.gameGrid = gameGrid;
@@ -24,48 +27,29 @@ public class AI {
         this.otherPlayer = player == 1 ? 2 : 1;
     }
 
-//    public Position moveAI() {
-//        maxIteration = 20;
-//        List<Position> validMoves = gameGrid.getValidMoves(player);
-//        if(validMoves.size() > 6) maxIteration--;
-//        List<Position> toChange = gameGrid.getChangedAfter(validMoves.get(0), player);
-//        gameGrid.moveWithoutShowing(validMoves.get(0), toChange, player);
-//        int best = move2(false, 1, true, 1000000);
-//        Position position = validMoves.get(0);
-//        gameGrid.undoMove(validMoves.get(0), toChange, otherPlayer);
-//        for(int i = 1; i < validMoves.size(); i++) {
-//            toChange = gameGrid.getChangedAfter(validMoves.get(i), player);
-//            gameGrid.moveWithoutShowing(validMoves.get(i), toChange, player);
-//            int current = move2(false, 1, true, best);
-//            gameGrid.undoMove(validMoves.get(i), toChange, otherPlayer);
-//            if(current > best) {
-//                best = current;
-//                position = validMoves.get(i);
-//            }
-//        }
-//        System.out.println(best);
-//        return position;
-//    }
+    public AI(GameGrid gameGrid, int player, Heuristic heuristic) {
+        this.gameGrid = gameGrid;
+        this.player = player;
+        this.otherPlayer = player == 1 ? 2 : 1;
+        this.heuristic = heuristic;
+    }
 
     public Position moveAI() {
+        maxRoundNumber = gameGrid.getMoveNumber() + maxIteration;
+        long start = System.currentTimeMillis();
+        number = 0;
         List<Position> validMoves = gameGrid.getValidMoves(player);
 
-        List<Elem> moves = new ArrayList<>(validMoves.size());
-        for (Position validMove : validMoves) {
-            List<Position> toChange = gameGrid.getChangedAfter(validMove, player);
-            gameGrid.moveWithoutShowing(validMove, toChange, player);
-            moves.add(new Elem(countScore(), validMove));
-            gameGrid.undoMove(validMove, toChange, otherPlayer);
-        }
-        moves.sort((e1, e2) -> Integer.compare(e2.cost, e1.cost));
+        List<Elem> moves = getSortedValidMoves(validMoves, player, otherPlayer);
 
+//        int nextLayer = 1;
         int nextLayer = validMoves.size() > optionsToCut ? 2 : 1;
         Position currentMove = moves.get(0).position;
+        Position position = currentMove;
         List<Position> toChange = gameGrid.getChangedAfter(currentMove, player);
         gameGrid.moveWithoutShowing(currentMove, toChange, player);
         int best = move2(false, nextLayer, true, 1000000);
-        Position position = currentMove;
-        gameGrid.undoMove(moves.get(0).position, toChange, otherPlayer);
+        gameGrid.undoMove(currentMove, toChange, otherPlayer);
         for(int i = 1; i < moves.size(); i++) {
             currentMove = moves.get(i).position;
             toChange = gameGrid.getChangedAfter(currentMove, player);
@@ -77,6 +61,8 @@ public class AI {
                 position = currentMove;
             }
         }
+        System.err.println("Odwiedzono " + number + " nodów");
+        System.err.println("Czas kompilacji: " + (System.currentTimeMillis() - start) + "ms");
         return position;
     }
 
@@ -96,7 +82,7 @@ public class AI {
         return value;
     }
 
-    private int countInDanger() {
+    private int heuristicInDanger() {
         int inDanger = 0;
         List<Position> validMoves = gameGrid.getValidMoves(otherPlayer);
         for(Position position : validMoves) {
@@ -109,7 +95,7 @@ public class AI {
         return inDanger;
     }
 
-    private int countOnCorners() {
+    private int heuristicOnCorner() {
         int number = 0;
         int[][] board = gameGrid.getBoard();
         int value = board[0][0];
@@ -135,7 +121,7 @@ public class AI {
         return number;
     }
 
-    private int countOnBorder() {
+    private int heuristicOnBorder() {
         int number = 0;
         int[][] board = gameGrid.getBoard();
         for(int ix = 1; ix < gameGrid.sizeX - 1; ix++) {
@@ -169,75 +155,33 @@ public class AI {
         return number;
     }
 
-//    public int move2(boolean myMove, int layer, boolean hasPrev, int previous) {
-//        int thisPlayer = myMove ? player : otherPlayer;
-//        List<Position> validMoves = gameGrid.getValidMoves(thisPlayer);
-//        if(validMoves.isEmpty()) {
-//            if(hasPrev) {
-//                return move2(!myMove, layer - 1, false, previous);
-//            }
-//            else {
-//                int value = countDifference();
-//                if(value > 0) return value + 1000000;
-//                if(value < 0) return value - 1000000;
-//                return 0;
-//            }
-//        }
-//        if(layer > maxIteration) {
-//            return countScore();
-//        }
-//
-//        int notThisPlayer = myMove ? otherPlayer : player;
-//        if(validMoves.size() > 6) maxIteration--;
-//        List<Position> toChange = gameGrid.getChangedAfter(validMoves.get(0), thisPlayer);
-//        gameGrid.moveWithoutShowing(validMoves.get(0), toChange, thisPlayer);
-//        int best = 0;
-//
-//        if(myMove) {
-//            best = move2(false, layer + 1, true, 1000000);
-//            gameGrid.undoMove(validMoves.get(0), toChange, notThisPlayer);
-//
-//            if(best > previous) return best;
-//
-//            for(int i = 1; i < validMoves.size(); i++) {
-//                toChange = gameGrid.getChangedAfter(validMoves.get(i), thisPlayer);
-//                gameGrid.moveWithoutShowing(validMoves.get(i), toChange, thisPlayer);
-//                int current = move2(false, layer + 1, true, best);
-//                gameGrid.undoMove(validMoves.get(i), toChange, notThisPlayer);
-//                if(current > best) {
-//                    if(hasPrev && current > previous) return current;
-//                    best = current;
-//                }
-//            }
-//        }
-//        if(!myMove) {
-//            best = move2(true, layer + 1, true, -100000);
-//            gameGrid.undoMove(validMoves.get(0), toChange, notThisPlayer);
-//
-//            if(best < previous) return best;
-//
-//            for(int i = 1; i < validMoves.size(); i++) {
-//                toChange = gameGrid.getChangedAfter(validMoves.get(i), thisPlayer);
-//                gameGrid.moveWithoutShowing(validMoves.get(i), toChange, thisPlayer);
-//                int current = move2(true, layer + 1, true, best);
-//                gameGrid.undoMove(validMoves.get(i), toChange, notThisPlayer);
-//                if(current < best) {
-//                    if(hasPrev && current < previous) return current;
-//                    best = current;
-//                }
-//            }
-//        }
-//        return best;
-//    }
+    private int heuristicFieldValue() {
+        int score = 0;
+        int[][] board = gameGrid.getBoard();
+        for(int ix = 0; ix < gameGrid.sizeX; ix++) {
+            for(int iy = 0; iy < gameGrid.sizeY; iy++) {
+                if(board[ix][iy] != 0) {
+                    if(board[ix][iy] == player)
+                        score += heuristic.fieldsValues[ix][iy];
+                    else
+                        score -= heuristic.fieldsValues[ix][iy];
+                }
+            }
+        }
+        return score;
+    }
 
     public int move2(boolean myMove, int layer, boolean hasPrev, int previous) {
+        number++;
         int thisPlayer = myMove ? player : otherPlayer;
         List<Position> validMoves = gameGrid.getValidMoves(thisPlayer);
         if(validMoves.isEmpty()) {
             if(hasPrev) {
-                return move2(!myMove, layer - 1, false, previous);
+//                System.out.println("Brak ruchu");
+                return move2(!myMove, layer, false, previous);
             }
             else {
+//                System.out.println("Potencjalny koniec na głębokości " + layer);
                 int value = countDifference();
                 if(value > 0) return value + 1000000;
                 if(value < 0) return value - 1000000;
@@ -250,17 +194,10 @@ public class AI {
 
         int notThisPlayer = myMove ? otherPlayer : player;
 
-        List<Elem> moves = new ArrayList<>(validMoves.size());
-        for (Position validMove : validMoves) {
-            List<Position> toChange = gameGrid.getChangedAfter(validMove, thisPlayer);
-            gameGrid.moveWithoutShowing(validMove, toChange, thisPlayer);
-            moves.add(new Elem(countScore(), validMove));
-            gameGrid.undoMove(validMove, toChange, notThisPlayer);
-//            moves.add(new Elem(0, validMove));
-        }
-        moves.sort((e1, e2) -> Integer.compare(e2.cost, e1.cost));
+        List<Elem> moves = getSortedValidMoves(validMoves, thisPlayer, notThisPlayer);
 
         int nextLayer = validMoves.size() > optionsToCut ? layer + 2 : layer + 1;
+//        int nextLayer = layer + 1;
         Position currentPosition = moves.get(0).position;
         List<Position> toChange = gameGrid.getChangedAfter(currentPosition, thisPlayer);
         gameGrid.moveWithoutShowing(currentPosition, toChange, thisPlayer);
@@ -285,7 +222,7 @@ public class AI {
             }
         }
         if(!myMove) {
-            best = move2(true, layer + 1, true, -100000);
+            best = move2(true, layer + 1, true, -1000000);
             gameGrid.undoMove(currentPosition, toChange, notThisPlayer);
 
             if(best < previous) return best;
@@ -305,75 +242,132 @@ public class AI {
         return best;
     }
 
-    private int countScore() {
-        if(gameGrid.getMoveNumber() > 50) {
-            return countDifference() + 10 * countInDanger() + 20 * countOnCorners() + 4 * countOnBorder();
+    private List<Elem> getSortedValidMoves(List<Position> validMoves, int thisPlayer, int notThisPlayer) {
+        List<Elem> moves = new ArrayList<>(validMoves.size());
+        for (Position validMove : validMoves) {
+            List<Position> toChange = gameGrid.getChangedAfter(validMove, thisPlayer);
+            gameGrid.moveWithoutShowing(validMove, toChange, thisPlayer);
+            moves.add(new Elem(heuristicStability(), validMove));
+            gameGrid.undoMove(validMove, toChange, notThisPlayer);
         }
-        if(gameGrid.getMoveNumber() > 30) {
-            return countDifference() + 4 * countInDanger() + 500 * countOnCorners() + 10 * countOnBorder();
-        }
-        return countInDanger() + 200 * countOnCorners() + 10 * countOnBorder();
+        moves.sort((e1, e2) -> Integer.compare(e2.cost, e1.cost));
+        return moves;
     }
 
-    //    public Position firstMove() {
-//        List<Position> validMoves = gameGrid.getAllValidMoves();
-////        int thisPlayer = myMove ? player : otherPlayer;
-////        int notThisPlayer = myMove ? otherPlayer : player;
-//        List<Position> toChange = gameGrid.getChangedAfter(validMoves.get(0), player);
-//        gameGrid.doMove(validMoves.get(0), toChange, player);
-//        int best = move(false, 1, true);
-//        Position position = validMoves.get(0);
-//        gameGrid.undoMove(validMoves.get(0), toChange, otherPlayer);
-//        for(int i = 1; i < validMoves.size(); i++) {
-//            toChange = gameGrid.getChangedAfter(validMoves.get(i), player);
-//            gameGrid.doMove(validMoves.get(i), toChange, player);
-//            int current = move(false, 1, true);
-//            gameGrid.undoMove(validMoves.get(i), toChange, otherPlayer);
-//            if(current > best) {
-//                best = current;
-//                position = validMoves.get(i);
-//            }
-//        }
-//        return position;
-//    }
+    private List<Elem> getNotSortedValidMoves(List<Position> validMoves, int thisPlayer, int notThisPlayer) {
+        List<Elem> moves = new ArrayList<>(validMoves.size());
+        for (Position validMove : validMoves) {
+            moves.add(new Elem(0, validMove));
+        }
+        return moves;
+    }
 
-//    public int move(boolean myMove, int layer, boolean hasPrev) {
-//        int thisPlayer = myMove ? player : otherPlayer;
-//        List<Position> validMoves = gameGrid.getValidMoves(thisPlayer);
-//        if(validMoves.isEmpty()) {
-//            if(hasPrev) {
-//                return move(!myMove, layer - 1, false);
-//            }
-//            else {
-//                int value = countDifference();
-//                if(value > 0) return value + 1000;
-//                if(value < 0) return value - 1000;
-//                return 0;
-//            }
-//        }
-//        if(layer > 5) {
-//            return countScore();
-//        }
-//        int notThisPlayer = myMove ? otherPlayer : player;
-//        List<Position> toChange = gameGrid.getChangedAfter(validMoves.get(0), thisPlayer);
-//        gameGrid.moveWithoutShowing(validMoves.get(0), toChange, thisPlayer);
-//        int best = move(!myMove, layer + 1, true);
-//        gameGrid.undoMove(validMoves.get(0), toChange, notThisPlayer);
-//        for(int i = 1; i < validMoves.size(); i++) {
-//            toChange = gameGrid.getChangedAfter(validMoves.get(i), thisPlayer);
-//            gameGrid.moveWithoutShowing(validMoves.get(i), toChange, thisPlayer);
-//            int current = move(!myMove, layer + 1, true);
-//            gameGrid.undoMove(validMoves.get(i), toChange, notThisPlayer);
-//            if((myMove && current > best) || (!myMove && current < best)) {
-//                best = current;
-//            }
-//        }
-//        return best;
-//    }
+    private int countScore() {
+        int score = 0;
+        int[] weight = heuristic.getWeights(maxRoundNumber);
+        if(weight[0] != 0) {
+            score += weight[0] * countDifference();
+        }
+        if(weight[1] != 0) {
+            score += weight[1] * heuristicInDanger();
+        }
+        if(weight[2] != 0) {
+            score += weight[2] * heuristicOnCorner();
+        }
+        if(weight[3] != 0) {
+            score += weight[3] * heuristicOnBorder();
+        }
+        if(weight[4] != 0) {
+            score += weight[4] * heuristicFieldValue();
+        }
+        if(weight[5] != 0) {
+            score += weight[5] * heuristicStability();
+        }
+        return score;
+    }
 
-//    public Position chooseMove() {
-//        Collections.shuffle(gameGrid.getAllValidMoves());
-//        return gameGrid.getAllValidMoves().get(0);
-//    }
+    private int getStability(int x, int y, int notThisPlayer) {
+        int stability = 2;
+        int[] directionsX = {-1, 0, 1};
+        int[] directionsY = {-1, 0};
+        int[][] board = gameGrid.getBoard();
+        for(int dirX : directionsX) {
+            for(int dirY : directionsY) {
+                if(dirX == 0 && dirY == 0) continue;
+                int curX = x + dirX;
+                int curY = y + dirY;
+                int result1 = 2;
+                while(curX >= 0 && curY >= 0 && curX < gameGrid.sizeX && curY < gameGrid.sizeY) {
+                    if(board[curX][curY] == notThisPlayer) {
+                        result1 = 1;
+                        curX = -2;
+                    } else if(board[curX][curY] == 0) {
+                        result1 = 3;
+                        curX = -2;
+                    }
+                    curX += dirX;
+                    curY += dirY;
+                }
+                curX = x - dirX;
+                curY = y - dirY;
+                int result2 = 2;
+                while(curX >= 0 && curY >= 0 && curX < gameGrid.sizeX && curY < gameGrid.sizeY) {
+                    if(board[curX][curY] == notThisPlayer) {
+                        result2 = 1;
+                        curX = -2;
+                    } else if(board[curX][curY] == 0) {
+                        result2 = 3;
+                        curX = -2;
+                    }
+                    curX -= dirX;
+                    curY -= dirY;
+                }
+                int result = 2;
+                switch (result1 * result2) {
+                    case 1 -> result = 1;   // przeciwnik na obu stronach - pole słobo stabilne
+                    case 2 -> result = 2;   // przeciwnik i krawędź - pole silnie stabilne
+                    case 3 -> result = 0;   // przeciwnik i puste - pole niestabilne
+                    case 4 -> result = 2;   // krawędzie na obu stronach - pole silnie stabilne
+                    case 6 -> result = 2;   // krawędź i puste - pole silnie stabilne
+                    case 9 -> result = 1;   // puste na obu stronach - pole słabo stabilne
+                }
+                if(result < stability) stability = result;
+            }
+        }
+        return stability;
+    }
 
+    private int heuristicStabilityWithoutValue() {
+        int score = 0;
+        int[][] board = gameGrid.getBoard();
+        for(int ix = 0; ix < gameGrid.sizeX; ix++) {
+            for(int iy = 0; iy < gameGrid.sizeY; iy++) {
+                if(board[ix][iy] != 0) {
+                    if(board[ix][iy] == player)
+                        score += getStability(ix, iy, player);
+                    else
+                        score -= getStability(ix, iy, otherPlayer);
+                }
+            }
+        }
+        return score;
+    }
+
+    private int heuristicStability() {
+        int score = 0;
+        int[][] board = gameGrid.getBoard();
+        int[][] fieldsValues = heuristic.fieldsValues;;
+        for(int ix = 0; ix < gameGrid.sizeX; ix++) {
+            for(int iy = 0; iy < gameGrid.sizeY; iy++) {
+                if(board[ix][iy] != 0) {
+                    if(board[ix][iy] == player)
+                        score += (getStability(ix, iy, player) - 1) * (fieldsValues[ix][iy] >= 0 ? fieldsValues[ix][iy] : 10);
+                    else
+                        score -= (getStability(ix, iy, otherPlayer) - 1) * (fieldsValues[ix][iy] >= 0 ? fieldsValues[ix][iy] : 10);
+                }
+            }
+        }
+        return score;
+    }
 }
+
