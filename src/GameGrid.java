@@ -11,21 +11,22 @@ public class GameGrid extends Rectangle {
     public final int sizeX;
     public final int sizeY;
     private int[] fieldsCount;
+    private final int[][] startBoard;
 
-    public GameGrid(Position position, int width, int height, int gridWidth, int gridHeight) {
+    public GameGrid(Position position, int width, int height, int[][] startBoard) {
         super(position, width, height);
-        sizeX = gridWidth;
-        sizeY = gridHeight;
-        fieldsCount = new int[]{sizeX * sizeY, 0, 0};
-        board = new int[gridWidth][gridHeight];
-        grid = new GridCell[gridWidth][gridHeight];
-        int cellWidth = (width-position.x)/gridWidth;
-        int cellHeight = (height-position.y)/gridHeight;
-        for(int x = 0; x < gridWidth; x++) {
-            for(int y = 0; y < gridHeight; y++) {
-                grid[x][y] = new GridCell(new Position(position.x+cellWidth*x, position.y+cellHeight*y),
-                        cellWidth, cellHeight);
-                board[x][y] = 0;
+        sizeX = startBoard.length;
+        sizeY = startBoard[0].length;
+        this.startBoard = startBoard;
+        fieldsCount = new int[]{sizeX * sizeY - 4, 2, 2};
+        board = new int[sizeX][sizeY];
+        grid = new GridCell[sizeX][sizeY];
+        int cellWidth = (width-position.x)/sizeX;
+        int cellHeight = (height-position.y)/sizeY;
+        for(int x = 0; x < sizeX; x++) {
+            for(int y = 0; y < sizeY; y++) {
+                grid[x][y] = new GridCell(new Position(position.x+cellWidth*x, position.y+cellHeight*y), cellWidth, cellHeight, startBoard[x][y]);
+                board[x][y] = startBoard[x][y];
             }
         }
         moveNumber = 0;
@@ -37,10 +38,10 @@ public class GameGrid extends Rectangle {
         for(int x = 0; x < grid.length; x++) {
             for (int y = 0; y < grid[0].length; y++) {
                 grid[x][y].reset();
-                board[x][y] = 0;
+                board[x][y] = startBoard[x][y];
             }
         }
-        fieldsCount = new int[]{sizeX * sizeY, 0, 0};
+        fieldsCount = new int[]{sizeX * sizeY - 4, 2, 2};
         moveNumber = 0;
         updateValidMoves(1);
     }
@@ -122,17 +123,17 @@ public class GameGrid extends Rectangle {
     }
 
     public int getWinner(boolean stillValidMoves) {
-        int[] counts = {0,0,0};
-        for(int y = 0; y < sizeY; y++) {
-            for(int x = 0; x < sizeX; x++) {
-                //counts[grid[x][y].getCellState()]++;
-                counts[board[x][y]]++;
-            }
-        }
+//        int[] counts = {0,0,0};
+//        for(int y = 0; y < sizeY; y++) {
+//            for(int x = 0; x < sizeX; x++) {
+//                //counts[grid[x][y].getCellState()]++;
+//                counts[board[x][y]]++;
+//            }
+//        }
 
-        if(stillValidMoves && counts[0] > 0) return 0;
-        else if(counts[1] == counts[2]) return 3;
-        else return counts[1] > counts[2] ? 1 : 2;
+        if(stillValidMoves && fieldsCount[0] > 0) return 0;
+        else if(fieldsCount[1] == fieldsCount[2]) return 3;
+        else return fieldsCount[1] > fieldsCount[2] ? 1 : 2;
     }
 
     public void paint(Graphics g) {
@@ -163,27 +164,6 @@ public class GameGrid extends Rectangle {
         for(Position validMove : validMoves) {
             grid[validMove.x][validMove.y].setHighlight(false);
         }
-//        validMoves.clear();
-//        if(moveNumber < 4) {
-//            int midX = grid.length/2-1;
-//            int midY = grid[0].length/2-1;
-//            for (int x = midX; x < midX+2; x++) {
-//                for (int y = midY; y < midY+2; y++) {
-//                    if (grid[x][y].getCellState() == 0) {
-//                        validMoves.add(new Position(x, y));
-//                    }
-//                }
-//            }
-//        } else {
-//            for (int x = 0; x < sizeX; x++) {
-//                for (int y = 0; y < sizeY; y++) {
-//                    Position pos = new Position(x, y);
-//                    if (board[x][y] == 0 && checkIfValid(pos,playerID)) {
-//                        validMoves.add(new Position(x, y));
-//                    }
-//                }
-//            }
-//        }
         validMoves = getValidMoves(playerID);
         for(Position validMove : validMoves) {
             grid[validMove.x][validMove.y].setHighlight(true);
@@ -192,37 +172,16 @@ public class GameGrid extends Rectangle {
 
     public List<Position> getValidMoves(int playerID) {
         List<Position> validMovesList = new ArrayList<>();
-        if(moveNumber < 4) {
-            int midX = grid.length/2-1;
-            int midY = grid[0].length/2-1;
-            for (int x = midX; x < midX+2; x++) {
-                for (int y = midY; y < midY+2; y++) {
-                    if (grid[x][y].getCellState() == 0) {
-                        validMovesList.add(new Position(x, y));
-                    }
-                }
-            }
-        } else {
-            for (int x = 0; x < sizeX; x++) {
-                for (int y = 0; y < sizeY; y++) {
-                    Position pos = new Position(x, y);
-                    if (board[x][y] == 0 && checkIfValid(pos,playerID)) {
-                        validMovesList.add(new Position(x, y));
-                    }
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                Position pos = new Position(x, y);
+                if (board[x][y] == 0 && checkIfValid(pos,playerID)) {
+                    validMovesList.add(new Position(x, y));
                 }
             }
         }
         return validMovesList;
     }
-
-//    public List<Position> getChangedPositionsForMove(Position position, int playerID) {
-//        List<Position> result = new ArrayList<>();
-//        result.addAll(getChangedPositionsForMoveInDirection(position, playerID, Position.DOWN));
-//        result.addAll(getChangedPositionsForMoveInDirection(position, playerID, Position.LEFT));
-//        result.addAll(getChangedPositionsForMoveInDirection(position, playerID, Position.UP));
-//        result.addAll(getChangedPositionsForMoveInDirection(position, playerID, Position.RIGHT));
-//        return result;
-//    }
 
     public List<Position> getChangedAfter(Position position, int playerID) {
         List<Position> result = new ArrayList<>();
@@ -491,39 +450,14 @@ public class GameGrid extends Rectangle {
         return false;
     }
 
-//    private List<Position> getChangedPositionsForMoveInDirection(Position position, int playerID, Position direction) {
-//        List<Position> result = new ArrayList<>();
-//        Position movingPos = new Position(position);
-//        int otherPlayer = playerID == 1 ? 2 : 1;
-//        movingPos.add(direction);
-//        // Keep moving while there are positions that would be changed.
-//        while(inBounds(movingPos) && grid[movingPos.x][movingPos.y].getCellState() == otherPlayer) {
-//            result.add(new Position(movingPos));
-//            movingPos.add(direction);
-//        }
-//        // If the end position is off the board, or the end playerID does not match the player, that
-//        // means that the move would not give any valid swaps in this direction.
-//        if(!inBounds(movingPos) || grid[movingPos.x][movingPos.y].getCellState() != playerID) {
-//            result.clear();
-//        }
-//        return result;
-//    }
-
-    private boolean inBounds(Position position) {
-        return !(position.x < 0 || position.y < 0 || position.x >= grid.length || position.y >= grid[0].length);
-    }
-
     public void drawBoardToConsole() {
-        System.out.println("\nMove " + moveNumber);
+        System.out.println("Move " + moveNumber);
         for(int y = 0; y < sizeY; y++) {
             for(int x = 0; x < sizeX; x++) {
                 System.out.print(board[x][y] + "  ");
             }
             System.out.println();
         }
+        System.out.println();
     }
-
-//    public boolean checkIfHasValid(int player) {
-//
-//    }
 }

@@ -2,11 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="df7904e7-958f-4cc1-8211-1a56aad2716a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/Heuristic.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/AI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/AI.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Game.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Game.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/GameGrid.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/GameGrid.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/GamePanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/GamePanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/GridCell.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/GridCell.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -86,7 +86,7 @@
       <workItem from="1681854361227" duration="4070000" />
       <workItem from="1682016188444" duration="46000" />
       <workItem from="1682062010771" duration="4530000" />
-      <workItem from="1682488143675" duration="47926000" />
+      <workItem from="1682488143675" duration="86592000" />
     </task>
     <task id="LOCAL-00001" summary="Working alpha-beta">
       <created>1681834533377</created>
@@ -102,7 +102,14 @@
       <option name="project" value="LOCAL" />
       <updated>1682488236168</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Before changing starter positions">
+      <created>1682753608077</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1682753608077</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -121,6 +128,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Working alpha-beta" />
-    <option name="LAST_COMMIT_MESSAGE" value="Working alpha-beta" />
+    <MESSAGE value="Before changing starter positions" />
+    <option name="LAST_COMMIT_MESSAGE" value="Before changing starter positions" />
   </component>
 </project>

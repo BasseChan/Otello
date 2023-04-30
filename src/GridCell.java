@@ -4,14 +4,16 @@ import java.awt.*;
 public class GridCell extends Rectangle {
     private int cellState;
     private boolean highlight;
+    private int defaultState;
 
-    public GridCell(Position position, int width, int height) {
+    public GridCell(Position position, int width, int height, int defaultState) {
         super(position, width, height);
+        this.defaultState = defaultState;
         reset();
     }
 
     public void reset() {
-        cellState = 0;
+        cellState = defaultState;
         highlight = false;
     }
 

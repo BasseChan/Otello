@@ -14,38 +14,6 @@ public class GamePanel extends JPanel implements MouseListener {
     private String gameStateStr;
     private AI aiBehaviour;
     private AI playerBlackAI;
-//    private static final int[][][] fields1 = {
-//            { // Faza początkowa
-//                    {20, -10, 10, 5, 5, 10, -10, 20},
-//                    {-10, -20, 1, 1, 1, 1, -20, -10},
-//                    {10, 1, 3, 2, 2, 3, 1, 10},
-//                    {5, 1, 2, 1, 1, 2, 1, 5},
-//                    {5, 1, 2, 1, 1, 2, 1, 5},
-//                    {10, 1, 3, 2, 2, 3, 1, 10},
-//                    {-10, -20, 1, 1, 1, 1, -20, -10},
-//                    {20, -10, 10, 5, 5, 10, -10, 20}
-//            },
-//            { // Faza środkowa
-//                    {100, -50, 10, 5, 5, 10, -50, 100},
-//                    {-50, -75, -5, -5, -5, -5, -75, -50},
-//                    {10, -5, 2, 1, 1, 2, -5, 10},
-//                    {5, -5, 1, 0, 0, 1, -5, 5},
-//                    {5, -5, 1, 0, 0, 1, -5, 5},
-//                    {10, -5, 2, 1, 1, 2, -5, 10},
-//                    {-50, -75, -5, -5, -5, -5, -75, -50},
-//                    {100, -50, 10, 5, 5, 10, -50, 100}
-//            },
-//            { // Faza końcowa
-//                    {500, -250, 50, 20, 20, 50, -250, 500},
-//                    {-250, -350, -50, -50, -50, -50, -350, -250},
-//                    {50, -50, 10, 5, 5, 10, -50, 50},
-//                    {20, -50, 5, 1, 1, 5, -50, 20},
-//                    {20, -50, 5, 1, 1, 5, -50, 20},
-//                    {50, -50, 10, 5, 5, 10, -50, 50},
-//                    {-250, -350, -50, -50, -50, -50, -350, -250},
-//                    {500, -250, 50, 20, 20, 50, -250, 500}
-//            }
-//    };
     private static final int[] groupsBorders1 = {30,50};
     private static final int[] groupsBorders2 = {30,50};
     private static final int[] groupsBorders3 = {30,50};
@@ -59,8 +27,8 @@ public class GamePanel extends JPanel implements MouseListener {
     private static final int[][] heuristicWeights3 = {{0,0,0,0,1,0},{0,0,0,0,1,0},{0,0,0,0,1,0}};
     private static final int[][] heuristicWeights4 = {{0,1,200,10,50,1000},{0,3,200,20,100,1000},{0,3,200,20,100,1000}};
     private static final int[][] heuristicWeights5 = {{0,1,0,0,1,10},{0,3,0,0,1,20},{1,2,0,0,1,50}};
-//    private static final int[][] heuristicWeights6 = {{0,0,0,0,0,3},{0,3,100,0,2,5},{1,3,0,0,1,10}};
-private static final int[][] heuristicWeights6 = {{0,0,0,0,0,3},{0,0,0,0,0,5},{0,0,0,0,0,5}};
+    private static final int[][] heuristicWeights6 = {{0,0,0,0,0,3},{0,3,100,0,2,5},{1,3,0,0,1,3}};
+//private static final int[][] heuristicWeights6 = {{0,0,0,0,0,3},{0,0,0,0,0,5},{0,0,0,0,0,5}};
     private static final int[][] fieldsValues1 = {
             {100, -50, 10, 5, 5, 10, -50, 100},
             {-50, -75, -5, -5, -5, -5, -75, -50},
@@ -144,14 +112,15 @@ private static final int[][] heuristicWeights6 = {{0,0,0,0,0,3},{0,0,0,0,0,5},{0
         setPreferredSize(new Dimension(PANEL_WIDTH, PANEL_HEIGHT));
         setBackground(Color.LIGHT_GRAY);
 
-        gameGrid = new GameGrid(new Position(0,0), PANEL_WIDTH, PANEL_HEIGHT-140, 8, 8);
+        gameGrid = new GameGrid(new Position(0,0), PANEL_WIDTH, PANEL_HEIGHT-140, startBoard);
         setGameState(GameState.BTurn);
         chooseAIType();
         addMouseListener(this);
+        repaint();
     }
 
     private void chooseAIType() {
-        String[] options = new String[] {"PvP", "PvAI", "AIvAI"};
+        String[] options = new String[] {" P vs P ", " P vs AI", "AI vs AI"};
         String message = "Select the game mode you would like to use.";
         int difficultyChoice = JOptionPane.showOptionDialog(null, message,
                 "Choose how to play.",
@@ -163,14 +132,43 @@ private static final int[][] heuristicWeights6 = {{0,0,0,0,0,3},{0,0,0,0,0,5},{0
                 playerBlackAI = null;
             }
             case 1 -> {
-                aiBehaviour = new AI(gameGrid, 2, heuristic1);
+                aiBehaviour = new AI(gameGrid, 2, heuristic6);
                 playerBlackAI = null;
             }
             case 2 -> {
-                aiBehaviour = new AI(gameGrid, 2, heuristic1);
-                playerBlackAI = new AI(gameGrid, 1, heuristic6);
+                aiBehaviour = new AI(gameGrid, 2, heuristic6);
+                playerBlackAI = new AI(gameGrid, 1, heuristic2);
+                simulate();
             }
         }
+    }
+
+    public void simulate() {
+        long time = System.currentTimeMillis();
+        boolean gameOn = true;
+        while(gameOn) {
+
+            if(gameState == GameState.BTurn) {
+                if(gameGrid.getValidMoves(1).isEmpty()) {
+                    testForEndGame(false);
+                }
+                else {
+                    playTurn(playerBlackAI.moveAI());
+                }
+            } else {
+                if(gameState == GameState.WTurn) {
+                    if(gameGrid.getValidMoves(2).isEmpty()) {
+                        testForEndGame(false);
+                    }
+                    else {
+                        playTurn(aiBehaviour.moveAI());
+                    }
+                }
+                else gameOn = false;
+            }
+        }
+        System.err.println("Łącznie odwiedzono " + (playerBlackAI.totalNodesVisited + aiBehaviour.totalNodesVisited) + " nodów");
+        System.err.println("Łączny czas kompilacji: " + (System.currentTimeMillis() - time));
     }
 
     public void paint(Graphics g) {
@@ -191,8 +189,7 @@ private static final int[][] heuristicWeights6 = {{0,0,0,0,0,3},{0,0,0,0,0,5},{0
     public void handleInput(int keyCode) {
         if(keyCode == KeyEvent.VK_ENTER) {
             moveAI();
-        }
-        else if(keyCode == KeyEvent.VK_ESCAPE) {
+        } else if(keyCode == KeyEvent.VK_ESCAPE) {
             System.exit(0);
         } else if(keyCode == KeyEvent.VK_R) {
             restart();

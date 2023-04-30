@@ -13,13 +13,16 @@ class Elem {
 
 public class AI {
     private int number = 0;
-    private static final int maxIteration = 10;
+    private static final int maxIteration = 10;     //:D
     private static final int optionsToCut = 8;
     private final GameGrid gameGrid;
     private final int player;
     private final int otherPlayer;
     private Heuristic heuristic;
     private int maxRoundNumber;
+    public int totalNodesVisited = 0;
+//    private int alfa;
+//    private int beta;
 
     public AI(GameGrid gameGrid, int player) {
         this.gameGrid = gameGrid;
@@ -34,13 +37,51 @@ public class AI {
         this.heuristic = heuristic;
     }
 
+//    public Position moveAI() {
+//        alfa = -10000000;
+//        beta = 10000000;
+//        maxRoundNumber = gameGrid.getMoveNumber() + maxIteration;
+//        long start = System.currentTimeMillis();
+//        totalNodesVisited += number;
+//        number = 0;
+//        List<Position> validMoves = gameGrid.getValidMoves(player);
+//
+//        List<Elem> moves = getNotSortedValidMoves(validMoves, player, otherPlayer, true);    //:D
+//
+////        int nextLayer = 1;
+//        int nextLayer = validMoves.size() > optionsToCut ? 2 : 1;
+//        Position currentMove = moves.get(0).position;
+//        Position position = currentMove;
+//        List<Position> toChange = gameGrid.getChangedAfter(currentMove, player);
+//        gameGrid.moveWithoutShowing(currentMove, toChange, player);
+//        int best = move2(false, nextLayer, true, 1000000);
+//        gameGrid.undoMove(currentMove, toChange, otherPlayer);
+//        for(int i = 1; i < moves.size(); i++) {
+//            currentMove = moves.get(i).position;
+//            toChange = gameGrid.getChangedAfter(currentMove, player);
+//            gameGrid.moveWithoutShowing(currentMove, toChange, player);
+//            int current = move2(false, nextLayer, true, best);
+//            gameGrid.undoMove(currentMove, toChange, otherPlayer);
+//            if(current > best) {
+//                best = current;
+//                position = currentMove;
+//            }
+//        }
+//        System.err.println("Odwiedzono " + number + " nodów");
+//        System.err.println("Czas kompilacji: " + (System.currentTimeMillis() - start) + "ms");
+//        return position;
+//    }
+
     public Position moveAI() {
+//        alfa = -10000000;
+//        beta = 10000000;
         maxRoundNumber = gameGrid.getMoveNumber() + maxIteration;
         long start = System.currentTimeMillis();
+        totalNodesVisited += number;
         number = 0;
         List<Position> validMoves = gameGrid.getValidMoves(player);
 
-        List<Elem> moves = getSortedValidMoves(validMoves, player, otherPlayer);
+        List<Elem> moves = getSortedValidMoves(validMoves, player, otherPlayer, true);    //:D
 
 //        int nextLayer = 1;
         int nextLayer = validMoves.size() > optionsToCut ? 2 : 1;
@@ -48,13 +89,13 @@ public class AI {
         Position position = currentMove;
         List<Position> toChange = gameGrid.getChangedAfter(currentMove, player);
         gameGrid.moveWithoutShowing(currentMove, toChange, player);
-        int best = move2(false, nextLayer, true, 1000000);
+        int best = move4(false, nextLayer, true, -1000000, 1000000);
         gameGrid.undoMove(currentMove, toChange, otherPlayer);
         for(int i = 1; i < moves.size(); i++) {
             currentMove = moves.get(i).position;
             toChange = gameGrid.getChangedAfter(currentMove, player);
             gameGrid.moveWithoutShowing(currentMove, toChange, player);
-            int current = move2(false, nextLayer, true, best);
+            int current = move4(false, nextLayer, true, -1000000, 1000000);
             gameGrid.undoMove(currentMove, toChange, otherPlayer);
             if(current > best) {
                 best = current;
@@ -171,14 +212,77 @@ public class AI {
         return score;
     }
 
-    public int move2(boolean myMove, int layer, boolean hasPrev, int previous) {
+    public int move2(boolean myMove, int layer, boolean hasPrev, int alfa, int beta) {
         number++;
         int thisPlayer = myMove ? player : otherPlayer;
         List<Position> validMoves = gameGrid.getValidMoves(thisPlayer);
         if(validMoves.isEmpty()) {
             if(hasPrev) {
 //                System.out.println("Brak ruchu");
-                return move2(!myMove, layer, false, previous);
+                return move2(!myMove, layer, false, alfa, beta);
+            }
+            else {
+//                System.out.println("Potencjalny koniec na głębokości " + layer);
+                int value = countDifference();
+                if(value > 0) return value + 100000000;
+                if(value < 0) return value - 100000000;
+                return 0;
+            }
+        }
+        if(layer > maxIteration) {
+            return countScore();
+        }
+
+        int notThisPlayer = myMove ? otherPlayer : player;
+
+        List<Elem> moves;
+        if(layer <= -maxIteration) {   //:D
+            moves = getSortedValidMoves(validMoves, thisPlayer, notThisPlayer, myMove);
+        } else {
+            moves = getNotSortedValidMoves(validMoves, thisPlayer, notThisPlayer, myMove);
+        }
+
+        int nextLayer = validMoves.size() > optionsToCut ? layer + 2 : layer + 1;
+//        int nextLayer = layer + 1;
+
+        if(myMove) {
+            for(int i = 1; i < validMoves.size(); i++) {
+                Position currentPosition = moves.get(i).position;
+                List<Position> toChange = gameGrid.getChangedAfter(currentPosition, thisPlayer);
+                gameGrid.moveWithoutShowing(currentPosition, toChange, thisPlayer);
+                int current = move2(false, nextLayer, true, alfa, beta);
+                gameGrid.undoMove(currentPosition, toChange, notThisPlayer);
+                if(current > alfa) {
+                    alfa = current;
+                    if(alfa >= beta) return alfa;  //:D
+                }
+            }
+            return alfa;
+        }
+        else {
+            for(int i = 1; i < validMoves.size(); i++) {
+                Position currentPosition = moves.get(i).position;
+                List<Position> toChange = gameGrid.getChangedAfter(currentPosition, thisPlayer);
+                gameGrid.moveWithoutShowing(currentPosition, toChange, thisPlayer);
+                int current = move2(true, nextLayer, true, alfa, beta);
+                gameGrid.undoMove(currentPosition, toChange, notThisPlayer);
+                if(current < beta) {
+                    beta = current;
+                    if(alfa >= beta) return beta;  //:D
+                }
+            }
+            return beta;
+        }
+    }
+
+    public int move4(boolean myMove, int layer, boolean hasPrev, int alfa, int beta) {
+        number++;
+        int thisPlayer = myMove ? player : otherPlayer;
+        List<Position> validMoves = gameGrid.getValidMoves(thisPlayer);
+        if(validMoves.isEmpty()) {
+            if(hasPrev) {
+//                System.out.println("Brak ruchu");
+                return move4(!myMove, layer, false, alfa, beta);
             }
             else {
 //                System.out.println("Potencjalny koniec na głębokości " + layer);
@@ -194,47 +298,54 @@ public class AI {
 
         int notThisPlayer = myMove ? otherPlayer : player;
 
-        List<Elem> moves = getSortedValidMoves(validMoves, thisPlayer, notThisPlayer);
+        List<Elem> moves;
+//        if(layer <= 2) {   //:D
+//            moves = getSortedValidMoves(validMoves, thisPlayer, notThisPlayer, myMove);
+//        } else {
+//            moves = getNotSortedValidMoves(validMoves, thisPlayer, notThisPlayer, myMove);
+//        }
+        moves = getNotSortedValidMoves(validMoves, thisPlayer, notThisPlayer, myMove);
 
         int nextLayer = validMoves.size() > optionsToCut ? layer + 2 : layer + 1;
-//        int nextLayer = layer + 1;
         Position currentPosition = moves.get(0).position;
         List<Position> toChange = gameGrid.getChangedAfter(currentPosition, thisPlayer);
         gameGrid.moveWithoutShowing(currentPosition, toChange, thisPlayer);
         int best = 0;
 
         if(myMove) {
-            best = move2(false, nextLayer, true, 1000000);
+            best = move4(false, nextLayer, true, alfa,beta);
             gameGrid.undoMove(currentPosition, toChange, notThisPlayer);
 
-            if(best > previous) return best;
-
             for(int i = 1; i < validMoves.size(); i++) {
+                if(best > alfa) {
+                    alfa = best;
+                    if(alfa >= beta) return alfa;
+                }
                 currentPosition = moves.get(i).position;
                 toChange = gameGrid.getChangedAfter(currentPosition, thisPlayer);
                 gameGrid.moveWithoutShowing(currentPosition, toChange, thisPlayer);
-                int current = move2(false, nextLayer, true, best);
+                int current = move4(false, nextLayer, true, alfa, beta);
                 gameGrid.undoMove(currentPosition, toChange, notThisPlayer);
                 if(current > best) {
-                    if(hasPrev && current > previous) return current;
                     best = current;
                 }
             }
         }
         if(!myMove) {
-            best = move2(true, layer + 1, true, -1000000);
+            best = move4(true, nextLayer, true, alfa, beta);
             gameGrid.undoMove(currentPosition, toChange, notThisPlayer);
 
-            if(best < previous) return best;
-
             for(int i = 1; i < validMoves.size(); i++) {
+                if(best < beta) {
+                    beta = best;
+                    if(alfa >= beta) return beta;
+                }
                 currentPosition = moves.get(i).position;
                 toChange = gameGrid.getChangedAfter(currentPosition, thisPlayer);
                 gameGrid.moveWithoutShowing(currentPosition, toChange, thisPlayer);
-                int current = move2(true, nextLayer, true, best);
+                int current = move4(true, nextLayer, true, alfa, beta);
                 gameGrid.undoMove(currentPosition, toChange, notThisPlayer);
                 if(current < best) {
-                    if(hasPrev && current < previous) return current;
                     best = current;
                 }
             }
@@ -242,7 +353,72 @@ public class AI {
         return best;
     }
 
-    private List<Elem> getSortedValidMoves(List<Position> validMoves, int thisPlayer, int notThisPlayer) {
+    public int move3(boolean myMove, int layer, boolean hasPrev, int alfa, int beta) {
+        number++;
+        int thisPlayer = myMove ? player : otherPlayer;
+        List<Position> validMoves = gameGrid.getValidMoves(thisPlayer);
+        if(validMoves.isEmpty()) {
+            if(hasPrev) {
+//                System.out.println("Brak ruchu");
+                return move3(!myMove, layer, false, alfa, beta);
+            }
+            else {
+//                System.out.println("Potencjalny koniec na głębokości " + layer);
+                int value = countDifference();
+                if(value > 0) return value + 1000000;
+                if(value < 0) return value - 1000000;
+                return 0;
+            }
+        }
+        if(layer > maxIteration) {
+            return countScore();
+        }
+
+        int notThisPlayer = myMove ? otherPlayer : player;
+
+        List<Elem> moves;
+        moves = getNotSortedValidMoves(validMoves, thisPlayer, notThisPlayer, myMove);
+
+        int nextLayer = validMoves.size() > optionsToCut ? layer + 2 : layer + 1;
+        Position currentPosition = moves.get(0).position;
+        List<Position> toChange = gameGrid.getChangedAfter(currentPosition, thisPlayer);
+        gameGrid.moveWithoutShowing(currentPosition, toChange, thisPlayer);
+        int best = 0;
+
+        if(myMove) {
+            best = move3(false, nextLayer, true, alfa,beta);
+            gameGrid.undoMove(currentPosition, toChange, notThisPlayer);
+
+            for(int i = 1; i < validMoves.size(); i++) {
+                currentPosition = moves.get(i).position;
+                toChange = gameGrid.getChangedAfter(currentPosition, thisPlayer);
+                gameGrid.moveWithoutShowing(currentPosition, toChange, thisPlayer);
+                int current = move3(false, nextLayer, true, alfa, beta);
+                gameGrid.undoMove(currentPosition, toChange, notThisPlayer);
+                if(current > best) {
+                    best = current;
+                }
+            }
+        }
+        if(!myMove) {
+            best = move3(true, nextLayer, true, alfa, beta);
+            gameGrid.undoMove(currentPosition, toChange, notThisPlayer);
+
+            for(int i = 1; i < validMoves.size(); i++) {
+                currentPosition = moves.get(i).position;
+                toChange = gameGrid.getChangedAfter(currentPosition, thisPlayer);
+                gameGrid.moveWithoutShowing(currentPosition, toChange, thisPlayer);
+                int current = move3(true, nextLayer, true, alfa, beta);
+                gameGrid.undoMove(currentPosition, toChange, notThisPlayer);
+                if(current < best) {
+                    best = current;
+                }
+            }
+        }
+        return best;
+    }
+
+    private List<Elem> getSortedValidMoves(List<Position> validMoves, int thisPlayer, int notThisPlayer, boolean myMove) {
         List<Elem> moves = new ArrayList<>(validMoves.size());
         for (Position validMove : validMoves) {
             List<Position> toChange = gameGrid.getChangedAfter(validMove, thisPlayer);
@@ -250,11 +426,12 @@ public class AI {
             moves.add(new Elem(heuristicStability(), validMove));
             gameGrid.undoMove(validMove, toChange, notThisPlayer);
         }
-        moves.sort((e1, e2) -> Integer.compare(e2.cost, e1.cost));
+        if(myMove) moves.sort((e1, e2) -> Integer.compare(e2.cost, e1.cost));
+        else moves.sort((e1, e2) -> Integer.compare(e1.cost, e2.cost));
         return moves;
     }
 
-    private List<Elem> getNotSortedValidMoves(List<Position> validMoves, int thisPlayer, int notThisPlayer) {
+    private List<Elem> getNotSortedValidMoves(List<Position> validMoves, int thisPlayer, int notThisPlayer, boolean myMove) {
         List<Elem> moves = new ArrayList<>(validMoves.size());
         for (Position validMove : validMoves) {
             moves.add(new Elem(0, validMove));
@@ -361,9 +538,9 @@ public class AI {
             for(int iy = 0; iy < gameGrid.sizeY; iy++) {
                 if(board[ix][iy] != 0) {
                     if(board[ix][iy] == player)
-                        score += (getStability(ix, iy, player) - 1) * (fieldsValues[ix][iy] >= 0 ? fieldsValues[ix][iy] : 10);
+                        score += (getStability(ix, iy, player) - 1) * (fieldsValues[ix][iy] >= 0 ? fieldsValues[ix][iy] : 1);
                     else
-                        score -= (getStability(ix, iy, otherPlayer) - 1) * (fieldsValues[ix][iy] >= 0 ? fieldsValues[ix][iy] : 10);
+                        score -= (getStability(ix, iy, otherPlayer) - 1) * (fieldsValues[ix][iy] >= 0 ? fieldsValues[ix][iy] : 1);
                 }
             }
         }
